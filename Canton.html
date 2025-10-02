@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>GS DAP Cluster — centered GS DAP icon</title>
+<style>
+:root{
+  --canvas-size:1600;
+  --bg:#071026;
+  --muted:#9fb7cf;
+  --accent-blue:#0e61ff;
+  --accent-gold:#ffc857;
+  --card-bg: rgba(255,255,255,0.03);
+  --shadow: 0 18px 48px rgba(2,6,23,0.6);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%;background:var(--bg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:#eaf6ff;overflow:hidden}
+.container{height:100vh;display:flex;align-items:center;justify-content:center;padding:18px}
+
+/* Logical canvas 1600x1600 scaled to fit viewport */
+.canvas{
+  width:1600px;height:1600px;position:relative;background:radial-gradient(circle at center,#1a2332 0%,#0a0f1a 70%);border-radius:10px;box-shadow:var(--shadow);overflow:visible;transform-origin:center center;
+}
+
+/* subtle grid (very faint) */
+.canvas::before{
+  content:"";position:absolute;inset:0;background-image:
+    radial-gradient(circle at 25% 25%, rgba(14,97,255,0.03) 1px, transparent 1px),
+    radial-gradient(circle at 75% 25%, rgba(14,97,255,0.02) 1px, transparent 1px);
+  opacity:0.08;pointer-events:none;
+}
+
+/* center glow and ring */
+.center-glow{position:absolute;left:800px;top:800px;transform:translate(-50%,-50%);width:820px;height:820px;border-radius:50%;pointer-events:none;z-index:2;filter:blur(16px);opacity:0.9;background:
+  radial-gradient(circle at 50% 40%, rgba(14,97,255,0.10) 0%, rgba(255,200,87,0.04) 40%, transparent 65%)}
+
+/* GS DAP (center) — fixed to exact center (800,800) via CSS */
+.center-node{
+  position:absolute;left:800px;top:800px;transform:translate(-50%,-50%);width:300px;height:300px;border-radius:20px;
+  background:linear-gradient(135deg,var(--accent-gold),#ffb347);border:3px solid rgba(14,97,255,0.6);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:8;cursor:pointer;
+  box-shadow:0 0 36px rgba(255,200,87,0.34),0 0 80px rgba(14,97,255,0.12)
+}
+.center-node .icon{width:92px;height:92px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:48px;background:rgba(0,0,0,0.06);margin-bottom:12px}
+.center-node .t{font-weight:800;font-size:20px;color:#111;margin-bottom:6px}
+.center-node .s{font-size:14px;color:rgba(17,17,17,0.85)}
+
+/* satellite base style */
+.sat{
+  position:absolute;width:260px;min-height:120px;border-radius:12px;padding:12px;display:flex;flex-direction:row;align-items:flex-start;gap:12px;z-index:6;background:var(--card-bg);border:1px solid rgba(255,255,255,0.02);cursor:pointer;
+  transition:transform .12s ease, box-shadow .12s ease;
+  box-shadow:0 8px 24px rgba(0,0,0,0.45);
+}
+.sat:hover{transform:translateY(-6px);box-shadow:0 18px 36px rgba(0,0,0,0.6)}
+.sat .icon{width:64px;height:64px;border-radius:10px;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;font-size:26px}
+.sat .info{flex:1}
+.sat .title{font-weight:800;font-size:15px}
+.sat .desc{font-size:13px;color:var(--muted);margin-top:6px}
+.sat .meta{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.25}
+.sat .links{display:flex;gap:8px;margin-top:8px}
+.link{font-size:12px;color:#dff3ff;text-decoration:none;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.02)}
+
+/* footer text inside canvas */
+.footer{position:absolute;left:800px;top:1480px;transform:translate(-50%,0);text-align:center;z-index:5}
+.footer .caption{font-size:15px;color:#eaf6ff;max-width:1000px;margin:0 auto}
+.footer .links{margin-top:8px;color:var(--muted)}
+
+/* connections svg overlays */
+.svg-wrap{position:absolute;left:0;top:0;width:1600px;height:1600px;z-index:4;pointer-events:none}
+.path{stroke:rgba(98,184,255,0.9);stroke-width:3;fill:none;stroke-dasharray:8 5;stroke-linecap:round;filter:drop-shadow(0 6px 10px rgba(14,97,255,0.06));transition:stroke-dashoffset .6s linear}
+@keyframes dash{to{stroke-dashoffset:-20}}
+.light{fill:var(--accent-gold);opacity:0.9}
+
+/* modal */
+.modal-wrap{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,0.6);z-index:9999}
+.modal{width:720px;max-width:94%;max-height:86vh;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:12px;padding:18px;overflow:auto;border:1px solid rgba(255,255,255,0.04)}
+.modal h2{font-size:20px;color:var(--accent-blue);margin-bottom:8px}
+.modal p{color:var(--muted);margin-bottom:12px;line-height:1.4}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.chip{background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;font-size:13px;color:var(--muted)}
+.modal .links{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.modal .links a{background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;color:#dff3ff;text-decoration:none}
+.modal .close{position:absolute;right:16px;top:12px;background:none;border:none;color:#fff;font-size:20px;cursor:pointer}
+.modal .share{margin-top:12px}
+button.share-btn{background:var(--accent-blue);color:#fff;padding:10px 12px;border-radius:8px;border:none;cursor:pointer}
+
+/* reduced motion */
+@media (prefers-reduced-motion: reduce){ .path{animation:none} }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="canvas" id="canvas" role="img" aria-label="GS DAP cluster centered">
+
+      <!-- glow -->
+      <div class="center-glow" aria-hidden="true"></div>
+
+      <!-- SVG connections -->
+      <div class="svg-wrap" aria-hidden="true">
+        <svg id="svg" width="1600" height="1600" viewBox="0 0 1600 1600" xmlns="http://www.w3.org/2000/svg">
+          <!-- paths will be injected by script -->
+        </svg>
+      </div>
+
+      <!-- Center GS DAP node — CSS places it exactly at left:800px;top:800px -->
+      <div class="center-node" id="gsdap" tabindex="0" role="button" title="GS DAP — click for details">
+        <div class="icon">🪙</div>
+        <div class="t">GS DAP®</div>
+        <div class="s">Tokenization of Assets</div>
+      </div>
+
+      <!-- Satellites with exact pixel centers (data-x, data-y) -->
+      <div class="sat sat-eib" data-key="eib" data-x="800" data-y="260" tabindex="0" role="button">
+        <div class="icon">🏦</div>
+        <div class="info">
+          <div class="title">EIB</div>
+          <div class="desc">Issuer — inaugural digitally native bond via GS DAP</div>
+          <div class="meta">Network Utility: Tokenized Assets</div>
+          <div class="links">
+            <a class="link" href="https://www.canton.network/ecosystem/eib" target="_blank" rel="noopener">EIB on Canton</a>
+            <a class="link" href="https://www.eib.org" target="_blank" rel="noopener">eib.org</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="sat sat-axa" data-key="axa" data-x="1180" data-y="360" tabindex="0" role="button">
+        <div class="icon">📈</div>
+        <div class="info">
+          <div class="title">AXA IM</div>
+          <div class="desc">Investor in EIB issuance</div>
+          <div class="meta">Roles: App Users · Financial Institutions</div>
+          <div class="links">
+            <a class="link" href="https://www.canton.network/ecosystem/axa-im" target="_blank" rel="noopener">AXA IM on Canton</a>
+            <a class="link" href="https://www.axa-im.com" target="_blank" rel="noopener">axa-im.com</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="sat sat-bnp" data-key="bnpp" data-x="1370" data-y="780" tabindex="0" role="button">
+        <div class="icon">🤝</div>
+        <div class="info">
+          <div class="title">BNP Paribas</div>
+          <div class="desc">BNP Neobonds tokenization platform</div>
+          <div class="meta">Network Utility: Tokenized Assets</div>
+          <div class="links">
+            <a class="link" href="https://www.canton.network/ecosystem/bnp-paribas" target="_blank" rel="noopener">BNP on Canton</a>
+            <a class="link" href="https://group.bnpparibas" target="_blank" rel="noopener">group.bnpparibas</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="sat sat-santander" data-key="santander" data-x="800" data-y="1320" tabindex="0" role="button">
+        <div class="icon">💼</div>
+        <div class="info">
+          <div class="title">Banco Santander</div>
+          <div class="desc">Joint lead manager for EIB issuance</div>
+          <div class="meta">Roles: App Users · Financial Institutions</div>
+          <div class="links">
+            <a class="link" href="https://www.canton.network/ecosystem/banco-santander" target="_blank" rel="noopener">Santander on Canton</a>
+            <a class="link" href="https://www.santander.com" target="_blank" rel="noopener">santander.com</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="sat sat-fidelity" data-key="fidelity" data-x="230" data-y="1080" tabindex="0" role="button">
+        <div class="icon">💰</div>
+        <div class="info">
+          <div class="title">Fidelity</div>
+          <div class="desc">Participant in tokenized green bond issuance</div>
+          <div class="meta">Network Utility: Tokenized Assets</div>
+          <div class="links">
+            <a class="link" href="https://www.canton.network/ecosystem/fidelity" target="_blank" rel="noopener">Fidelity on Canton</a>
+            <a class="link" href="https://www.fidelityinternational.com" target="_blank" rel="noopener">fidelityinternational.com</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="sat sat-hsbc" data-key="hsbc" data-x="230" data-y="360" tabindex="0" role="button">
+        <div class="icon">🔒</div>
+        <div class="info">
+          <div class="title">HSBC</div>
+          <div class="desc">Provider of HSBC Orion; participant in pilots</div>
+          <div class="meta">Network Utility: Tokenized Assets</div>
+          <div class="links">
+            <a class="link" href="https://www.canton.network/ecosystem/hsbc" target="_blank" rel="noopener">HSBC on Canton</a>
+            <a class="link" href="https://www.hsbc.com" target="_blank" rel="noopener">hsbc.com</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer caption -->
+      <div class="footer">
+        <div class="caption">GS DAP — tokenization of real-world bonds on Canton Network; privacy, interoperability, and RWA mobility.</div>
+        <div class="links">Explore: <a href="https://www.canton.network/ecosystem" target="_blank" rel="noopener">canton.network/ecosystem</a> · <a href="https://x.com/cantonnetwork" target="_blank" rel="noopener">@cantonnetwork</a></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-wrap" id="modalWrap" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button class="close" id="modalClose" aria-label="Закрыть">×</button>
+      <h2 id="modalTitle">Title</h2>
+      <p id="modalShort">Short description…</p>
+      <div class="chips" id="modalChips"></div>
+      <div id="modalBody" style="color:var(--muted);line-height:1.4"></div>
+      <div class="links" id="modalLinks"></div>
+      <div class="share" style="margin-top:12px"><button class="share-btn" id="modalShare">Share on X</button></div>
+    </div>
+  </div>
+
+<script>
+/* Data (GS DAP + satellites) */
+const DATA = {
+  "gsdap": {
+    title: "GS DAP® — Goldman Sachs Digital Asset Platform",
+    short: "Goldman Sachs Digital Asset Platform (GS DAP®) is natively on Canton Network, providing market-leading tokenization services for regulated financial markets.",
+    ecosystem: "https://www.canton.network/ecosystem/gs-dap",
+    external: "https://developer.gs.com/discover/gs-dap",
+    externalLabel: "developer.gs.com (GS DAP)",
+    utility: "Tokenized Assets",
+    roles: "Governance Apps · Financial Institutions",
+    connected: "Global Synchronizer",
+    twitterSearch: "GS%20DAP"
+  },
+  "eib": {
+    title: "EIB — European Investment Bank",
+    short: "EIB has issued groundbreaking digitally native bonds through the GS DAP™ and HSBC Orion platforms, bringing fully onchain real world assets to the Canton Network.",
+    ecosystem: "https://www.canton.network/ecosystem/eib",
+    external: "https://www.eib.org",
+    externalLabel: "eib.org",
+    utility: "Tokenized Assets",
+    roles: "App Users · Financial Institutions",
+    connected: "—",
+    twitterSearch: "EIB"
+  },
+  "axa": {
+    title: "AXA IM — AXA Investment Managers",
+    short: "AXA IM was an investor in the EIB's 100 million euro-denominated digitally native bond, the inaugural issuance on GS DAP™.",
+    ecosystem: "https://www.canton.network/ecosystem/axa-im",
+    external: "https://www.axa-im.com",
+    externalLabel: "axa-im.com",
+    utility: "—",
+    roles: "App Users · Financial Institutions",
+    connected: "GS DAP®",
+    twitterSearch: "AXA%20IM"
+  },
+  "bnpp": {
+    title: "BNP Paribas",
+    short: "Providers of BNP Neobonds tokenization platform built on Canton.",
+    ecosystem: "https://www.canton.network/ecosystem/bnp-paribas",
+    external: "https://group.bnpparibas",
+    externalLabel: "group.bnpparibas",
+    utility: "Tokenized Assets",
+    roles: "Governance Apps · Financial Institutions",
+    connected: "Global Synchronizer",
+    twitterSearch: "BNP%20Paribas"
+  },
+  "santander": {
+    title: "Banco Santander",
+    short: "Santander was the joint lead manager for the EIB's 100 million euro-denominated digitally native bond, the inaugural issuance on Goldman Sachs DAP.",
+    ecosystem: "https://www.canton.network/ecosystem/banco-santander",
+    external: "https://www.santander.com",
+    externalLabel: "santander.com",
+    utility: "—",
+    roles: "App Users · Financial Institutions",
+    connected: "GS DAP®",
+    twitterSearch: "Banco%20Santander"
+  },
+  "fidelity": {
+    title: "Fidelity International",
+    short: "Fidelity International participated in the inaugural tokenized green bond offering of HKSAR Government using Goldman Sachs' tokenization platform on Canton.",
+    ecosystem: "https://www.canton.network/ecosystem/fidelity",
+    external: "https://www.fidelityinternational.com",
+    externalLabel: "fidelityinternational.com",
+    utility: "Tokenized Assets",
+    roles: "App Users",
+    connected: "GS DAP®",
+    twitterSearch: "Fidelity"
+  },
+  "hsbc": {
+    title: "HSBC",
+    short: "Provider of HSBC Orion. HSBC is also connected to Canton native applications like HKEX Synapse, and a participant in RSN/RLN and other Canton-based pilots.",
+    ecosystem: "https://www.canton.network/ecosystem/hsbc",
+    external: "https://www.hsbc.com",
+    externalLabel: "hsbc.com",
+    utility: "Tokenized Assets",
+    roles: "Governance Apps · Financial Institutions",
+    connected: "—",
+    twitterSearch: "HSBC"
+  }
+};
+
+/* Place satellites and draw paths from exact center (800,800) to sat centers.
+   IMPORTANT: Do NOT reposition the center node — CSS already places it at left:800px;top:800px */
+function drawPaths(){
+  const svg = document.getElementById('svg');
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const cx = 800, cy = 800;
+  document.querySelectorAll('.sat').forEach(sat=>{
+    const x = parseFloat(sat.dataset.x);
+    const y = parseFloat(sat.dataset.y);
+    // position card so its center sits at (x,y)
+    const w = 260; // sat width
+    const h = sat.offsetHeight;
+    sat.style.left = (x - w/2) + 'px';
+    sat.style.top = (y - h/2) + 'px';
+
+    // create quadratic bezier from center to (x,y)
+    const midX = (cx + x) / 2;
+    const midY = (cy + y) / 2;
+    const dx = x - cx;
+    const dy = y - cy;
+    const perp = 0.18;
+    const ctrlX = midX - dy * perp;
+    const ctrlY = midY + dx * perp;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', `M ${cx} ${cy} Q ${ctrlX} ${ctrlY} ${x} ${y}`);
+    path.setAttribute('class','path');
+    svg.appendChild(path);
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('r','4');
+    circle.setAttribute('class','light');
+    const anim = document.createElementNS('http://www.w3.org/2000/svg','animateMotion');
+    anim.setAttribute('dur','4s');
+    anim.setAttribute('repeatCount','indefinite');
+    anim.setAttribute('path', `M ${cx} ${cy} Q ${ctrlX} ${ctrlY} ${x} ${y}`);
+    circle.appendChild(anim);
+    svg.appendChild(circle);
+  });
+}
+
+/* run on load after layout finishes */
+window.addEventListener('load', ()=>{ setTimeout(()=>{ drawPaths(); fitCanvas(); }, 30); });
+
+/* Fit canvas to viewport */
+function fitCanvas(){
+  const canvas = document.getElementById('canvas');
+  const pad = 28;
+  const vw = window.innerWidth - pad*2;
+  const vh = window.innerHeight - pad*2;
+  const size = 1600;
+  const scale = Math.min(vw/size, vh/size, 1);
+  canvas.style.transform = `scale(${scale})`;
+}
+window.addEventListener('resize', ()=>{ clearTimeout(window._fitTimer); window._fitTimer = setTimeout(fitCanvas,80); });
+
+/* Modal logic */
+const modalWrap = document.getElementById('modalWrap');
+const modalTitle = document.getElementById('modalTitle');
+const modalShort = document.getElementById('modalShort');
+const modalChips = document.getElementById('modalChips');
+const modalBody = document.getElementById('modalBody');
+const modalLinks = document.getElementById('modalLinks');
+const modalClose = document.getElementById('modalClose');
+const modalShare = document.getElementById('modalShare');
+
+function openModal(key){
+  const data = DATA[key];
+  if(!data) return;
+  modalTitle.textContent = data.title;
+  modalShort.textContent = data.short;
+  modalChips.innerHTML = '';
+  if(data.utility && data.utility !== '—'){ const c=document.createElement('div'); c.className='chip'; c.textContent='Network Utility: '+data.utility; modalChips.appendChild(c); }
+  if(data.roles && data.roles !== '—'){ const c=document.createElement('div'); c.className='chip'; c.textContent='Roles: '+data.roles; modalChips.appendChild(c); }
+  if(data.connected && data.connected !== '—'){ const c=document.createElement('div'); c.className='chip'; c.textContent='Connected to: '+data.connected; modalChips.appendChild(c); }
+
+  modalBody.innerHTML = '';
+  modalLinks.innerHTML = '';
+  if(data.ecosystem){ const a=document.createElement('a'); a.href=data.ecosystem; a.target='_blank'; a.rel='noopener'; a.textContent='Ecosystem page'; modalLinks.appendChild(a); }
+  if(data.external){ const a=document.createElement('a'); a.href=data.external; a.target='_blank'; a.rel='noopener'; a.textContent=data.externalLabel || 'External link'; modalLinks.appendChild(a); }
+  const tw = document.createElement('a'); tw.href = 'https://x.com/search?q=' + encodeURIComponent(data.twitterSearch || data.title); tw.target='_blank'; tw.rel='noopener'; tw.textContent = 'View on X'; modalLinks.appendChild(tw);
+
+  modalShare.onclick = () => {
+    const text = `${data.title} — ${data.short} Learn more: ${data.ecosystem || 'https://www.canton.network/ecosystem'} #CantonGraphics @cantonnetwork`;
+    const url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text);
+    window.open(url,'_blank','noopener');
+  };
+
+  modalWrap.style.display = 'flex';
+  modalWrap.setAttribute('aria-hidden','false');
+  modalClose.focus();
+}
+function closeModal(){ modalWrap.style.display='none'; modalWrap.setAttribute('aria-hidden','true'); }
+modalClose.addEventListener('click', closeModal);
+modalWrap.addEventListener('click', e=>{ if(e.target === modalWrap) closeModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+/* handlers: center and sats */
+document.getElementById('gsdap').addEventListener('click', ()=> openModal('gsdap'));
+document.getElementById('gsdap').addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' ') { e.preventDefault(); openModal('gsdap'); }});
+
+document.querySelectorAll('.sat').forEach(s=>{
+  s.addEventListener('click', ()=> openModal(s.dataset.key));
+  s.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' ') { e.preventDefault(); openModal(s.dataset.key); }});
+});
+
+/* Respect reduced motion */
+if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+  document.querySelectorAll('.path, .light').forEach(el => el.style.animation = 'none');
+}
+</script>
+</body>
+</html>
